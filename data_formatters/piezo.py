@@ -47,7 +47,7 @@ class PiezoFormatter(GenericDataFormatter):
         df_list = []
         for (identifier, cate), sliced in df.groupby(['p_id', 'categories']):
             sliced_copy = sliced.copy()
-            sliced_copy['piezo'] = self._scaler[(identifier, cate)].transform(sliced_copy['piezo'].values.reshape((-1, 1)))
+            sliced_copy['piezo'] = self._scaler[(identifier, cate)].transform(sliced_copy['piezo'].apply(str).values.reshape((-1, 1)))
             df_list.append(sliced_copy)
 
         output = pd.concat(df_list, axis=0)

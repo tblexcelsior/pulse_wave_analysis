@@ -25,11 +25,11 @@ raw_params = {
 raw_data = pd.read_csv(data_csv_path)
 data_formatter = data_formatters.piezo.PiezoFormatter()
 ModelClass = HopeThisWork(raw_params, True)
+train_df, valid_df, _ = data_formatter.split_data(raw_data, 400, 500)
 
 for _ in range(50):
-    train_dataset, valid_dataset, evaluate_dataset = data_formatter.split_data(raw_data, 400, 500)
-    train_dataset = data_formatter.windowed_dataset(train_dataset, TRAIN_SAMPLES, INPUT_LENGTH, OUTPUT_LENGTH, BATCH_SIZE)
-    valid_dataset = data_formatter.windowed_dataset(valid_dataset, VALID_SAMPLES, INPUT_LENGTH, OUTPUT_LENGTH, BATCH_SIZE)
+    train_dataset = data_formatter.windowed_dataset(train_df, TRAIN_SAMPLES, INPUT_LENGTH, OUTPUT_LENGTH, BATCH_SIZE)
+    valid_dataset = data_formatter.windowed_dataset(valid_df, VALID_SAMPLES, INPUT_LENGTH, OUTPUT_LENGTH, BATCH_SIZE)
     ModelClass.fit(train_dataset, valid_dataset)
 
 ModelClass.save('outputs')
