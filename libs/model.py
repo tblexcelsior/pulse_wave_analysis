@@ -100,7 +100,7 @@ def convert_real_to_embedding(inputs, hidden_layer_size):
     return tf.keras.layers.Dense(hidden_layer_size)(inputs)
 
 class HopeThisWork(object):
-    def __init__(self, raw_params, use_cudnn = False) -> None:
+    def __init__(self, raw_params, use_cudnn = False, reset_tmp = False) -> None:
         self.name = self.__class__.__name__
         params = dict(raw_params)
         self.time_steps = int(params['time_steps'])
@@ -116,11 +116,12 @@ class HopeThisWork(object):
         self.num_epochs = int(params['num_epochs'])
         self.early_stopping_patience = int(params['early_stopping_patience'])
 
-        self.category_counts = 4
+        self.category_counts = int(params['num_categories'])
 
         self._temp_folder = os.path.join(params['model_folder'], 'tmp')
         self._score_folder = os.path.join(params['model_folder'], 'results')
-        self.reset_temp_folder()
+        if reset_tmp:
+          self.reset_temp_folder()
 
         self.model = self.build_model()
 

@@ -21,14 +21,21 @@ class PiezoFormatter(GenericDataFormatter):
         """
         pass
     
-    def split_data(self, df, train_boundary = 600, valid_boundary = 700, test_boundary = None):
-        idx = df['time_from_start']
-        train_df = df.loc[idx < train_boundary]
-        valid_df = df.loc[((idx > train_boundary) & (idx < valid_boundary))]
-        if test_boundary is None:
-            test_df = df.loc[idx > valid_boundary]
-        else:
-            test_df = df.loc[((idx > valid_boundary) & (idx < test_boundary))]
+    def split_data(self, df):
+        train_df = []
+        valid_df = []
+        test_df = []
+        for i, s in df.groupby('id'):
+            idx = s['time_from_start']
+            max_time = max(idx)
+            train_portion = 0.8*max_time
+            train_df.append(s[idx < train_portion])
+            valid_portion = 0.9*max_time
+            valid_df.append(s[((idx > train_portion) & (idx < valid_portion))])
+            test_df.append(s[idx > valid_portion])
+        train_df = pd.concat(train_df)
+        valid_df = pd.concat(valid_df)
+        test_df = pd.concat(test_df)
 
         self._set_scaler(train_df)
 
@@ -41,7 +48,7 @@ class PiezoFormatter(GenericDataFormatter):
             real_data = sliced['data'].values.reshape((-1, 1))
             self._scaler[(identifier, cate)] = StandardScaler().fit(real_data)
 
-        self._categorical_scaler['hour'] = LabelEncoder().fit(df['hour'].values.reshape((-1)))
+        self._categorical_scaler['hour'] = LabelEncoder().fit(df['hour'].apply(str).values.reshape((-1)))
 
     def transform_input(self, df):
         df_list = []
