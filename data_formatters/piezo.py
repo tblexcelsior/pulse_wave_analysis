@@ -10,7 +10,7 @@ GenericDataFormatter = data_formatters.base.GenericDataFormatter
 
 class PiezoFormatter(GenericDataFormatter):
     _column_definition = [
-        ('p_id', InputTypes.ID),
+        ('id', InputTypes.ID),
         ('time_from_start', InputTypes.TIME),
         ('ECG', InputTypes.TARGET)
     ]
@@ -37,21 +37,21 @@ class PiezoFormatter(GenericDataFormatter):
     def _set_scaler(self, df):
         self._scaler = {}
         self._categorical_scaler = {}
-        for (identifier, cate), sliced in df.groupby(['p_id', 'categories']):
-            real_data = sliced['piezo'].values.reshape((-1, 1))
+        for (identifier, cate), sliced in df.groupby(['id', 'hour']):
+            real_data = sliced['data'].values.reshape((-1, 1))
             self._scaler[(identifier, cate)] = StandardScaler().fit(real_data)
 
-        self._categorical_scaler['categories'] = LabelEncoder().fit(df['categories'].values.reshape((-1)))
+        self._categorical_scaler['hour'] = LabelEncoder().fit(df['hour'].values.reshape((-1)))
 
     def transform_input(self, df):
         df_list = []
-        for (identifier, cate), sliced in df.groupby(['p_id', 'categories']):
+        for (identifier, cate), sliced in df.groupby(['id', 'hour']):
             sliced_copy = sliced.copy()
-            sliced_copy['piezo'] = self._scaler[(identifier, cate)].transform(sliced_copy['piezo'].apply(str).values.reshape((-1, 1)))
+            sliced_copy['data'] = self._scaler[(identifier, cate)].transform(sliced_copy['data'].apply(str).values.reshape((-1, 1)))
             df_list.append(sliced_copy)
 
         output = pd.concat(df_list, axis=0)
-        output['categories'] = self._categorical_scaler['categories'].transform(df['categories'].apply(str).values.reshape(-1))
+        output['hour'] = self._categorical_scaler['hour'].transform(df['hour'].apply(str).values.reshape(-1))
         return output
     
     def data_preparation(self, df, max_samples, window_size, predicting_steps):
@@ -59,7 +59,7 @@ class PiezoFormatter(GenericDataFormatter):
         split_data_map = {}
         time_steps = predicting_steps + window_size
 
-        for (identifier, cate), sliced in df.groupby(['p_id', 'categories']):
+        for (identifier, cate), sliced in df.groupby(['id', 'hour']):
             num_entries = len(sliced)
             if num_entries >= time_steps:
                 sampling_localtions += [(identifier, cate, time_steps + i) for i in range(num_entries - time_steps + 1)]
@@ -82,9 +82,9 @@ class PiezoFormatter(GenericDataFormatter):
                 print(i + 1, 'of', max_samples, 'samples done...')
             identifier, cate, start_idx = tup
             sliced = split_data_map[(identifier, cate)].iloc[start_idx - time_steps:start_idx]
-            inputs[i, :, :] = sliced[['piezo']][:window_size]
-            known_inputs[i, :, :] = sliced[['time_from_start', 'categories']][:]
-            outputs[i, :, :] = sliced[['piezo']][window_size:]
+            inputs[i, :, :] = sliced[['data']][:window_size]
+            known_inputs[i, :, :] = sliced[['time_from_start', 'hour']][:]
+            outputs[i, :, :] = sliced[['data']][window_size:]
         return inputs, known_inputs, outputs
 
     def windowed_dataset(self, input_df, max_samples, window_size, prediction_steps, batch_size):
